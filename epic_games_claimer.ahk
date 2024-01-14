@@ -8,12 +8,18 @@ HEIGHT := 1080
 
 iniPath := A_ScriptDir . "\epic_games_claimer.ini"
 
+lastClaimed := IniRead(iniPath, "config", "last_claimed", "")
+if (lastClaimed = now()) {
+    ; don't activate if already claimed today
+    ExitApp
+}
+
 isDailyActive := IniRead(iniPath, "settings", "daily_games", 1)
 start := IniRead(iniPath, "settings", "daily_start", "")
 end := IniRead(iniPath, "settings", "daily_end", "")
 isRangeSet := start && end && start != end && isDailyActive
-isDailyDate := isRangeSet && A_Now >= start && A_Now <= end
-isHoliday := isDailyDate || (!isRangeSet && A_MM = 12) || true
+isDailyDate := isRangeSet && now() >= start && now() <= end
+isHoliday := isDailyDate || (!isRangeSet && A_MM = 12)
 
 ; clear old range
 if (A_MM = 12) {
@@ -65,6 +71,14 @@ err_msg(msg, title) {
     ExitApp
 }
 
+removeTime(date) {
+    return FormatTime(date, "yyyyMMdd")
+}
+
+now() {
+    return removeTime(A_Now)
+}
+
 runMain(*) {
     main.destroy()
 
@@ -75,27 +89,20 @@ runMain(*) {
     awaitColor(WIDTH / 2, 450, "0x000000", 15000, "Loading screen")
 
     ; black on store page
-    awaitColor(WIDTH / 2, 450, "0x121212", 5000, "Home page")
+    awaitColor(1200, 80, "0x121212", 5000, "Home page")
 
-    ; middle of screen
-    middleX := 960
-    middleY := 540
-    MouseMove(middleX, middleY)
+    ; make sure mouse is on correct monitor
+    MouseMove(WIDTH / 2, HEIGHT / 2)
 
-    ; scroll to the bottom (free game not loaded yet)
-    Loop 18 {
+    ; scroll to free game
+    Loop 14 {
         MouseClick("WheelDown")
     }
 
+    ; this means free game is loaded
     awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
 
-    ; scroll to free game when loaded
-    Loop 5 {
-        MouseClick("WheelDown")
-    }
-
-    ; wait for scroll to finish properly
-    Sleep(500)
+    ; look for blue free game banner
     awaitColor(500, 800, "0x0078F2", 5000, "Free game")
 
     ; click on free game
@@ -132,7 +139,7 @@ runMain(*) {
             found := ImageSearch(&x, &y, 1450, 640, 1580, 1010, "*15 *TransBlack dark_img.png")
         }
         if (found) {
-            Click(1665, y + 118)
+            Click(1665, y + 119)
             break
         }
 
@@ -143,8 +150,10 @@ runMain(*) {
     }
 
     ; order game
-    awaitColor(1525, 955, "0x0078F2", 10000, "Order button")
+    awaitColor(1525, 955, "0x0078F2", 20000, "Order button")
     Click(1525, 955)
+
+    IniWrite(now(), iniPath, "config", "last_claimed")
 
     ExitApp
 }
@@ -181,8 +190,8 @@ saveSettings(*) {
     if (dt2.value < dt.value) {
         TrayTip("End date needs to be after start date", "Epic Games Claimer")
     } else {
-        IniWrite(dt.value, iniPath, "settings", "daily_start")
-        IniWrite(dt2.value, iniPath, "settings", "daily_end")
+        IniWrite(removeTime(dt.value), iniPath, "settings", "daily_start")
+        IniWrite(removeTime(dt2.value), iniPath, "settings", "daily_end")
         TrayTip("Settings saved", "Epic Games Claimer")
     }
 }
