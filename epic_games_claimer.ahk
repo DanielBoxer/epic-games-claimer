@@ -57,18 +57,17 @@ awaitColor(x, y, target, timeout, msg) {
         if (color = target) {
             return true
         }
-        if (A_TickCount - startTime > timeout) {
-            ; color not found in time limit
-            err_msg(msg . " not found", "Epic Games Claimer")
-            return false
-        }
-        Sleep(100)
+        checkTimeout(startTime, timeout, msg)
     }
 }
 
-err_msg(msg, title) {
-    TrayTip(msg, title)
-    ExitApp
+checkTimeout(startTime, timeout, msg) {
+    if (A_TickCount - startTime > timeout) {
+        ; color not found in time limit
+        TrayTip(msg . " not found", "Epic Games Claimer")
+        ExitApp
+    }
+    Sleep(100)
 }
 
 removeTime(date) {
@@ -82,7 +81,7 @@ now() {
 runMain(*) {
     main.destroy()
 
-    Run("C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win32\EpicGamesLauncher.exe")
+    Run("C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe")
     WinWaitActive("Epic Games Launcher")
 
     ; black right before load
@@ -103,10 +102,18 @@ runMain(*) {
     awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
 
     ; look for blue free game banner
-    awaitColor(500, 800, "0x0078F2", 5000, "Free game")
-
-    ; click on free game
-    Click(785, 610)
+    timeout := 5000
+    startTime := A_TickCount
+    Loop {
+        ; search a line down the screen for free game banner
+        found := PixelSearch(&x, &y, 550, 350, 550, 900, "0x0078F2")
+        if (found) {
+            ; click on free game
+            Click(760, y - 180)
+            break
+        }
+        checkTimeout(startTime, timeout, "Free game")
+    }
 
     timeout := 15000
     startTime := A_TickCount
@@ -143,10 +150,7 @@ runMain(*) {
             break
         }
 
-        if (A_TickCount - startTime > timeout) {
-            err_msg("Get button not found", "Epic Games Claimer")
-        }
-        Sleep(100)
+        checkTimeout(startTime, timeout, "Get button")
     }
 
     ; order game
