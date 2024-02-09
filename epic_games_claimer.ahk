@@ -61,10 +61,12 @@ awaitColor(x, y, target, timeout, msg) {
     }
 }
 
-checkTimeout(startTime, timeout, msg) {
+checkTimeout(startTime, timeout, msg, isSilent:=false) {
     if (A_TickCount - startTime > timeout) {
         ; color not found in time limit
-        TrayTip(msg . " not found", "Epic Games Claimer")
+        if (!isSilent) {
+            TrayTip(msg . " not found", "Epic Games Claimer")
+        }
         ExitApp
     }
     Sleep(100)
@@ -78,43 +80,23 @@ now() {
     return removeTime(A_Now)
 }
 
-runMain(*) {
-    main.destroy()
-
-    Run("C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe")
-    WinWaitActive("Epic Games Launcher")
-
-    ; black right before load
-    awaitColor(WIDTH / 2, 450, "0x000000", 15000, "Loading screen")
-
-    ; black on store page
-    awaitColor(1200, 80, "0x121212", 5000, "Home page")
-
-    ; make sure mouse is on correct monitor
-    MouseMove(WIDTH / 2, HEIGHT / 2)
-
-    ; scroll to free game
-    Loop 14 {
-        MouseClick("WheelDown")
-    }
-
-    ; this means free game is loaded
-    awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
-
+searchForGame(searchX, claimX, isSilent:=false) {
     ; look for blue free game banner
     timeout := 5000
     startTime := A_TickCount
     Loop {
         ; search a line down the screen for free game banner
-        found := PixelSearch(&x, &y, 550, 350, 550, 900, "0x0078F2")
+        found := PixelSearch(&x, &y, searchX, 350, searchX, 900, "0x0078F2")
         if (found) {
             ; click on free game
-            Click(760, y - 180)
+            Click(claimX, y - 180)
             break
         }
-        checkTimeout(startTime, timeout, "Free game")
+        checkTimeout(startTime, timeout, "Free game", isSilent)
     }
+}
 
+claimGame() {
     timeout := 15000
     startTime := A_TickCount
     Loop {
@@ -156,6 +138,46 @@ runMain(*) {
     ; order game
     awaitColor(1525, 955, "0x0078F2", 20000, "Order button")
     Click(1525, 955)
+
+
+    ; TODO dismiss thanks for your order popup
+    ; for now go back to store page after first game
+}
+
+runMain(*) {
+    main.destroy()
+
+    Run("C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe")
+    WinWaitActive("Epic Games Launcher")
+    ; make sure launcher is maximized
+    WinMaximize
+
+    ; black right before load
+    awaitColor(WIDTH / 2, 450, "0x000000", 15000, "Loading screen")
+
+    ; black on store page
+    awaitColor(1200, 80, "0x121212", 5000, "Home page")
+
+    ; make sure mouse is on correct monitor
+    MouseMove(WIDTH / 2, HEIGHT / 2)
+
+    ; scroll to free game
+    Loop 14 {
+        MouseClick("WheelDown")
+    }
+
+    ; this means free game is loaded
+    awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
+    
+    ; search for first game (sometimes there are two)
+    searchForGame(550, 550 + 150)
+    claimGame()
+    
+    ; second game
+    ; search on the right of the "free now" text
+    ; because when there's only one game, it's bigger and could be found
+    searchForGame(1250, 1250 - 150, true)
+    claimGame()
 
     IniWrite(now(), iniPath, "config", "last_claimed")
 
