@@ -139,9 +139,14 @@ claimGame() {
     awaitColor(1525, 955, "0x0078F2", 20000, "Order button")
     Click(1525, 955)
 
+    ; check epic games logo for lighter shade of white
+    awaitColor(180, 105, "0xF6F6F6", 10000, "Continue browsing button")
+    ; click continue browsing
+    Click(820, 750)
 
-    ; TODO dismiss thanks for your order popup
-    ; for now go back to store page after first game
+    ; go back to store
+    awaitColor(60, 200, "0xF5F5F5", 5000, "Store button")
+    Click(60, 200)
 }
 
 runMain(*) {
