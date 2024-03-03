@@ -43,7 +43,7 @@ if (A_WDay = 6 || isHoliday) {
         main.add("Text",, "Happy Holidays!")
     }
     main.add("Button", "Default w85 h50", "Continue").onEvent("click", runMain)
-    main.add("Button", "x+m w85 h50", "Snooze").onEvent("click", snooze)
+    main.add("Button", "x+m w85 h50", "Snooze").onEvent("click", openSnoozeGui)
     main.add("Button", "x+m w85 h50", "Settings").onEvent("click", openSettings)
     main.show()
 } else {
@@ -121,11 +121,17 @@ claimGame() {
 
         luminance := 0.2126 * red + 0.7152 * green + 0.0722 * blue
 
+        ; top left
+        x1 := 1450
+        y1 := 600
+        ; bottom right
+        x2 := 1580
+        y2 := 1010
         ; use different img based on bg
         if (luminance > 0.5) {
-            found := ImageSearch(&x, &y, 1450, 640, 1580, 1010, "*15 *TransWhite light_img.png")
+            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransWhite light_img.png")
         } else {
-            found := ImageSearch(&x, &y, 1450, 640, 1580, 1010, "*15 *TransBlack dark_img.png")
+            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransBlack dark_img.png")
         }
         if (found) {
             Click(1665, y + 119)
@@ -173,11 +179,11 @@ runMain(*) {
 
     ; this means free game is loaded
     awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
-    
+
     ; search for first game (sometimes there are two)
     searchForGame(550, 550 + 150)
     claimGame()
-    
+
     ; second game
     ; search on the right of the "free now" text
     ; because when there's only one game, it's bigger and could be found
@@ -227,11 +233,27 @@ saveSettings(*) {
     }
 }
 
-snooze(*) {
+snooze(snoozeGui, time, *) {
+    snoozeGui.destroy()
     main.hide()
-    ; wait 5 min
-    Sleep(300000)
+    Sleep(time)
     main.show()
+}
+
+openSnoozeGui(*) {
+    snoozeGui := Gui("+AlwaysOnTop", "Snooze")
+    snoozeGui.setFont("s10", "Verdana")
+
+    sBtn1 := snoozeGui.add("Button", "Default w85 h50", "5 min")
+    sBtn1.onEvent("click", (*) => snooze(snoozeGui, 300000))
+
+    sBtn2 := snoozeGui.add("Button", "x+m w85 h50", "30 min")
+    sBtn2.onEvent("click", (*) => snooze(snoozeGui, 1.8e6))
+
+    sBtn3 := snoozeGui.add("Button", "x+m w85 h50", "2 hr")
+    sBtn3.onEvent("click", (*) => snooze(snoozeGui, 3.6e6))
+
+    snoozeGui.show()
 }
 
 cancel(*) {
