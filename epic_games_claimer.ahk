@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 
 ; hotkey to exit script
-Esc::ExitApp
+Esc:: ExitApp
 
 WIDTH := 1920
 HEIGHT := 1080
@@ -26,10 +26,10 @@ if (A_MM = 12) {
     startYear := FormatTime(start, "yyyy")
     if (startYear < A_YYYY) {
         if (start) {
-            IniDelete(iniPath, "settings" , "daily_start")
+            IniDelete(iniPath, "settings", "daily_start")
         }
         if (end) {
-            IniDelete(iniPath, "settings" , "daily_end")
+            IniDelete(iniPath, "settings", "daily_end")
         }
     }
 }
@@ -40,7 +40,7 @@ if (A_WDay = 6 || isHoliday) {
     main.onEvent("close", cancel)
     main.setFont("s10", "Verdana")
     if (isHoliday) {
-        main.add("Text",, "Happy Holidays!")
+        main.add("Text", , "Happy Holidays!")
     }
     main.add("Button", "Default w85 h50", "Continue").onEvent("click", runMain)
     main.add("Button", "x+m w85 h50", "Snooze").onEvent("click", openSnoozeGui)
@@ -52,7 +52,7 @@ if (A_WDay = 6 || isHoliday) {
 
 awaitColor(x, y, target, timeout, msg) {
     startTime := A_TickCount
-    Loop {
+    loop {
         color := PixelGetColor(x, y)
         if (color = target) {
             return true
@@ -61,7 +61,7 @@ awaitColor(x, y, target, timeout, msg) {
     }
 }
 
-checkTimeout(startTime, timeout, msg, isSilent:=false) {
+checkTimeout(startTime, timeout, msg, isSilent := false) {
     if (A_TickCount - startTime > timeout) {
         ; color not found in time limit
         if (!isSilent) {
@@ -80,11 +80,11 @@ now() {
     return removeTime(A_Now)
 }
 
-searchForGame(searchX, claimX, isSilent:=false) {
+searchForGame(searchX, claimX, isSilent := false) {
     ; look for blue free game banner
     timeout := 5000
     startTime := A_TickCount
-    Loop {
+    loop {
         ; search a line down the screen for free game banner
         found := PixelSearch(&x, &y, searchX, 350, searchX, 900, "0x0078F2")
         if (found) {
@@ -99,7 +99,7 @@ searchForGame(searchX, claimX, isSilent:=false) {
 claimGame() {
     timeout := 15000
     startTime := A_TickCount
-    Loop {
+    loop {
         ; first check for content warning continue button
         color := PixelGetColor(965, 700)
         if (color = "0x0074E4") {
@@ -123,7 +123,7 @@ claimGame() {
 
         ; top left
         x1 := 1450
-        y1 := 600
+        y1 := 540
         ; bottom right
         x2 := 1580
         y2 := 1010
@@ -173,7 +173,7 @@ runMain(*) {
     MouseMove(WIDTH / 2, HEIGHT / 2)
 
     ; scroll to free game
-    Loop 14 {
+    loop 14 {
         MouseClick("WheelDown")
     }
 
