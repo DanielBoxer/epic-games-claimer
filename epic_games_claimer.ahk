@@ -1,10 +1,17 @@
 #Requires AutoHotkey v2.0
+#SingleInstance Force
 
 ; hotkey to exit script
-Esc:: ExitApp
+Esc:: {
+    TrayTip("Exited script using Esc key", "Epic Games Claimer")
+    ExitApp
+}
 
 WIDTH := 1920
 HEIGHT := 1080
+
+; client mode to make relative to launcher window
+CoordMode("Pixel", "Client")
 
 iniPath := A_ScriptDir . "\epic_games_claimer.ini"
 
@@ -50,11 +57,15 @@ if (A_WDay = 6 || isHoliday) {
     ExitApp
 }
 
-awaitColor(x, y, target, timeout, msg) {
+log(msg) {
+    FileAppend(msg . "`n", "log.txt")
+}
+
+awaitColor(x, y, target, timeout, msg, isNegative := false) {
     startTime := A_TickCount
     loop {
         color := PixelGetColor(x, y)
-        if (color = target) {
+        if ((color = target) != isNegative) {
             return true
         }
         checkTimeout(startTime, timeout, msg)
@@ -85,11 +96,18 @@ searchForGame(searchX, claimX, isSilent := false) {
     timeout := 5000
     startTime := A_TickCount
     loop {
+        ; scroll a bit farther down each time
+        loop 2 {
+            MouseClick("WheelDown")
+        }
         ; search a line down the screen for free game banner
-        found := PixelSearch(&x, &y, searchX, 350, searchX, 900, "0x0078F2")
+        found := PixelSearch(&x, &y, searchX, 350, searchX, 900, "0x26BBFF")
         if (found) {
-            ; click on free game
-            Click(claimX, y - 180)
+            claimY := y - 300
+            MouseMove(claimX, claimY)
+            ; move mouse a tiny amount before clicking which
+            ; avoids navigating to the wrong game (also double click)
+            Click(claimX - 5, claimY - 5, 2)
             break
         }
         checkTimeout(startTime, timeout, "Free game", isSilent)
@@ -129,12 +147,14 @@ claimGame() {
         y2 := 1010
         ; use different img based on bg
         if (luminance > 0.5) {
-            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransWhite light_img.png")
+            ; bg is light, text will be dark
+            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransWhite utils/masks/light.png")
         } else {
-            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransBlack dark_img.png")
+            ; bg is dark, text will be light
+            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransBlack utils/masks/dark.png")
         }
         if (found) {
-            Click(1665, y + 119)
+            Click(1665, y + 140)
             break
         }
 
@@ -167,18 +187,15 @@ runMain(*) {
     awaitColor(WIDTH / 2, 450, "0x000000", 15000, "Loading screen")
 
     ; black on store page
-    awaitColor(1200, 80, "0x121212", 5000, "Home page")
+    awaitColor(1200, 80, "0x101014", 5000, "Home page")
 
     ; make sure mouse is on correct monitor
     MouseMove(WIDTH / 2, HEIGHT / 2)
 
-    ; scroll to free game
-    loop 14 {
+    ; scroll to bottom (above free game)
+    loop 30 {
         MouseClick("WheelDown")
     }
-
-    ; this means free game is loaded
-    awaitColor(1925, 600, "0xA6A6A6", 10000, "Scroll bar")
 
     ; search for first game (sometimes there are two)
     searchForGame(550, 550 + 150)
