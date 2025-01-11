@@ -4,8 +4,16 @@ import pathlib
 import numpy as np
 from PIL import Image
 
-DARK_THRESHOLD = 230
-LIGHT_THRESHOLD = 70
+DARK_THRESHOLD = 250
+LIGHT_THRESHOLD = 30
+
+# base_game
+# DARK_THRESHOLD = 250
+# LIGHT_THRESHOLD = 30
+
+# 100
+# DARK_THRESHOLD = 245
+# LIGHT_THRESHOLD = 15
 
 
 def save_image(img_array, mode):
@@ -32,11 +40,11 @@ def create_mask(input_path, mode):
     output_img[~mask] = bg_color
 
     # inverse mask
-    other_mode = "light" if mode == "dark" else "dark"
-    inverse_img = 255 - output_img
+    # other_mode = "light" if mode == "dark" else "dark"
+    # inverse_img = 255 - output_img
 
     save_image(output_img, mode)
-    save_image(inverse_img, other_mode)
+    # save_image(inverse_img, other_mode)
 
 
 def get_args():

@@ -106,12 +106,32 @@ searchForGame(searchX, claimX, isSilent := false) {
             claimY := y - 300
             MouseMove(claimX, claimY)
             ; move mouse a tiny amount before clicking which
-            ; avoids navigating to the wrong game (also double click)
-            Click(claimX - 5, claimY - 5, 2)
+            ; avoids navigating to the wrong game
+            MouseMove(claimX - 20, claimY - 20)
+
+            loop 5 {
+                ; keep clicking on game thumbnail while it loads
+                Click(2)
+                Sleep(25)
+            }
             break
         }
         checkTimeout(startTime, timeout, "Free game", isSilent)
     }
+}
+
+calcLuminance(color) {
+    red := (color >> 16) & 0xff
+    green := (color >> 8) & 0xff
+    blue := color & 0xff
+
+    red := red / 255, green := green / 255, blue := blue / 255
+    red := (red <= 0.03928) ? (red / 12.92) : ((red + 0.055) / 1.055) ** 2.4
+    green := (green <= 0.03928) ? (green / 12.92) : ((green + 0.055) / 1.055) ** 2.4
+    blue := (blue <= 0.03928) ? (blue / 12.92) : ((blue + 0.055) / 1.055) ** 2.4
+
+    luminance := 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    return luminance
 }
 
 claimGame() {
@@ -127,17 +147,20 @@ claimGame() {
 
         ; then check if page bg is light or dark
         color := PixelGetColor(1650, 200)
+        luminance := calcLuminance(color)
 
-        red := (color >> 16) & 0xff
-        green := (color >> 8) & 0xff
-        blue := color & 0xff
+        getSearchOptions(target) {
+            ; use different img based on bg
+            lightMask := "*15 *TransWhite utils/masks/" . target . "/light.png"
+            darkMask := "*15 *TransBlack utils/masks/" . target . "/dark.png"
 
-        red := red / 255, green := green / 255, blue := blue / 255
-        red := (red <= 0.03928) ? (red / 12.92) : ((red + 0.055) / 1.055) ** 2.4
-        green := (green <= 0.03928) ? (green / 12.92) : ((green + 0.055) / 1.055) ** 2.4
-        blue := (blue <= 0.03928) ? (blue / 12.92) : ((blue + 0.055) / 1.055) ** 2.4
+            ; for light bg, check dark mask first (light text)
+            primaryMask := luminance > 0.5 ? darkMask : lightMask
+            ; secondary mask is opposite one
+            secondaryMask := primaryMask = lightMask ? darkMask : lightMask
 
-        luminance := 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            return [primaryMask, secondaryMask]
+        }
 
         ; top left
         x1 := 1450
@@ -145,16 +168,34 @@ claimGame() {
         ; bottom right
         x2 := 1580
         y2 := 1010
-        ; use different img based on bg
-        if (luminance > 0.5) {
-            ; bg is light, text will be dark
-            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransWhite utils/masks/light.png")
-        } else {
-            ; bg is dark, text will be light
-            found := ImageSearch(&x, &y, x1, y1, x2, y2, "*15 *TransBlack utils/masks/dark.png")
+
+        ; first check if on correct page (Base Game text is visible)
+        searchOptions := getSearchOptions("base_game")
+        ; use opposite (for light bg, search for dark text)
+        baseGameMask := searchOptions[2]
+        found := ImageSearch(&x, &y, x1, y1, x2, y2, baseGameMask)
+        if (!found) {
+            continue
         }
+
+        ; then make sure it's a free game by checking for -100% badge
+        searchOptions := getSearchOptions("100")
+        primaryMask := searchOptions[1]
+        secondaryMask := searchOptions[2]
+
+        ; reduce search area because now position is known
+        y1 := y + 40
+        x2 := 1530
+        y2 := y1 + 30
+        ; check for same color text (ex: light bg and light text)
+        found := ImageSearch(&x, &y, x1, y1, x2, y2, primaryMask)
+        if (!found) {
+            ; if not found, check other mask (ex: light bg and dark text)
+            found := ImageSearch(&x, &y, x1, y1, x2, y2, secondaryMask)
+        }
+
         if (found) {
-            Click(1665, y + 140)
+            Click(1665, y + 85)
             break
         }
 
@@ -163,16 +204,16 @@ claimGame() {
 
     ; order game
     awaitColor(1525, 955, "0x0078F2", 20000, "Order button")
-    Click(1525, 955)
+    Click(1465, 960)
 
-    ; check epic games logo for lighter shade of white
-    awaitColor(180, 105, "0xF6F6F6", 10000, "Continue browsing button")
+    ; check for yellow square icon above continue browsing button
+    awaitColor(990, 480, "0xD6F85F", 10000, "Continue browsing button")
     ; click continue browsing
-    Click(820, 750)
+    Click(815, 720)
 
     ; go back to store
-    awaitColor(60, 200, "0xF5F5F5", 5000, "Store button")
-    Click(60, 200)
+    ; awaitColor(60, 200, "0xFFFFFF", 5000, "Store button")
+    ; Click(60, 200)
 }
 
 runMain(*) {
@@ -204,8 +245,8 @@ runMain(*) {
     ; second game
     ; search on the right of the "free now" text
     ; because when there's only one game, it's bigger and could be found
-    searchForGame(1250, 1250 - 150, true)
-    claimGame()
+    ; searchForGame(1250, 1250 - 150, true)
+    ; claimGame()
 
     IniWrite(now(), iniPath, "config", "last_claimed")
 
